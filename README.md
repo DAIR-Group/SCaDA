@@ -26,5 +26,5 @@ We provide several Jupyter notebooks demonstrating how to use the SCaDA.
 ## PyPI package
 The `SCaDA` is available on the PyPI and can be installed as follows:
 ```bash
-pip install PySCaDA
+pip install scada-python
 ```
