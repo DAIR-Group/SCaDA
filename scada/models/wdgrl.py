@@ -344,4 +344,4 @@ class WDGRL():
         self.encoder.load_state_dict(torch.load(encoder_path, map_location=self.device))
         self.critic.load_state_dict(torch.load(critic_path, map_location=self.device))
 
-        print(f"Encoder and Critic loaded from {folder_path}")
+        # print(f"Encoder and Critic loaded from {folder_path}")

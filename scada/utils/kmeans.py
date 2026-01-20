@@ -9,7 +9,7 @@ def kmeans(X, k, max_iters=300, tol=1e-3, seed=42):
     centroids = initial_centroids.copy()
     cluster_labels_all = []
     cluster_members_all = []
-
+    old_labels = None
     for _ in range(max_iters):
         distances = np.linalg.norm(X[:, np.newaxis] - centroids, axis=2)
         labels = np.argmin(distances, axis=1)
@@ -25,8 +25,13 @@ def kmeans(X, k, max_iters=300, tol=1e-3, seed=42):
                 new_centroids[cluster] = instances_in_cluster.mean(axis=0)
             else:
                 new_centroids[cluster] = centroids[cluster]
-        if np.linalg.norm(new_centroids - centroids) < tol:
+        if old_labels is not None and np.array_equal(labels, old_labels):
+            # print("Converged at iteration", _)
             break
+        old_labels = labels.copy()
+        # if np.linalg.norm(new_centroids - centroids) < tol:
+        #     print("Converged at iteration", _)
+        #     break
         centroids = new_centroids
 
     return initial_indices, cluster_labels_all, cluster_members_all

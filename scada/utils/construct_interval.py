@@ -233,8 +233,10 @@ def KMeancondition2(n, K, A, B, initial_centroids, labels_all, members_all = Non
             if P_sel.size == 0:
                 continue
             trunc_interval = util.interval_intersection(trunc_interval,solveinterval(P_sel, Q_sel, O_sel, z))
-
-    trunc_interval = [(float(a), float(b)) for (a, b) in trunc_interval]
+    for (a, b) in trunc_interval:
+        if a <= z <= b:
+            trunc_interval = [(float(a), float(b))]
+            break
     return trunc_interval
 
 

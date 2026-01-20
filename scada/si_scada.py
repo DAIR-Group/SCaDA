@@ -81,28 +81,35 @@ def parametric(model,ns, X, a, b, eta, n_clusters, c1, c2, c1_obs, c2_obs, signo
     countitv=0
     Z = []
     stepsize= 0.00001
-
     total_steps = int((zmax - zmin) / stepsize)
     with tqdm(total=total_steps, desc="Progress: ") as pbar:
         while z < zmax:
             z += stepsize
-            # print("z =",z)
-            Xdeltaz = a + b*z
-            Xdeltaz_torch = torch.from_numpy(Xdeltaz).double().to(device)
-            with torch.no_grad():
-                Xdeltaz_transformed = model.extract_feature(Xdeltaz_torch).cpu().numpy()
-            initial_centroids_z, labels_all_z, members_all_obs = kmeans(Xdeltaz_transformed, n_clusters)
+            
+            # sign_z = np.sign(eta.T.dot(vec(Xdeltaz[ns:])))
+            # oc = overconditioning(model,ns, Xdeltaz, eta, a, b, n_clusters, initial_centroids_z, labels_all_z, members_all_obs, z=z,X_=Xdeltaz_transformed)
+            interval_da, a_, b_ = construct_interval.ReLUcondition(model.encoder, a, b, a+b*z)
+            left_da, right_da = interval_da[0]
+            # z = left_da
+            while z < right_da:
+                Xdeltaz_transformed = a_ + b_*z
+                initial_centroids_z, labels_all_z, members_all_obs = kmeans(Xdeltaz_transformed, n_clusters)
 
-            sign_z = np.sign(eta.T.dot(vec(Xdeltaz[ns:])))
-            oc = overconditioning(model,ns, Xdeltaz, eta, a, b, n_clusters, initial_centroids_z, labels_all_z, members_all_obs, z=z,X_=Xdeltaz_transformed)
-            idx_cluster_c1 = np.argwhere(labels_all_z[-1][ns:] == c1).flatten()
-            idx_cluster_c2 = np.argwhere(labels_all_z[-1][ns:] == c2).flatten()
+                interval_kmean = construct_interval.KMeancondition2(Xdeltaz_transformed.shape[0], n_clusters, a_, b_, initial_centroids_z, labels_all_z, members_all_obs,z=z)
+                oc = util.interval_intersection(interval_da, interval_kmean)
+            
+                idx_cluster_c1 = np.argwhere(labels_all_z[-1][ns:] == c1).flatten()
+                idx_cluster_c2 = np.argwhere(labels_all_z[-1][ns:] == c2).flatten()
 
-            if np.array_equal(c1_obs, idx_cluster_c1) and np.array_equal(c2_obs, idx_cluster_c2) and np.array_equal(signobs, sign_z):
-                Z = util.interval_union(Z, oc)
-                countitv+=1
+                if np.array_equal(c1_obs, idx_cluster_c1) and np.array_equal(c2_obs, idx_cluster_c2): #and np.array_equal(signobs, sign_z):
+                    Z = util.interval_union(Z, oc)
+                    countitv+=1
 
-            z = oc[-1][1]
+                z = oc[-1][1]
+                if z + stepsize >= right_da:
+                    break
+                z += stepsize
+
             pbar.update(int((z - zmin) / stepsize) - pbar.n)
     return Z
 
@@ -149,7 +156,8 @@ def run_scada(Xs,
     b_2d = b.reshape(n, d)
 
     std = np.sqrt(etaT_Sigma_eta)
-
+    interval_test_statistic = construct_interval.statistic_condition(eta_tmp, vec(a_2d[ns:]), vec(b_2d[ns:]), vec(X_origin[ns:]))
+    left_s, right_s = interval_test_statistic[0]
     # final_interval = overconditioning(final_model, X_origin,eta_tmp, a_2d, b_2d,np_wdgrl, K, initial_centroids_obs, labels_all_obs, members_all_obs,z=etaTX, X_=X_transformed)
     final_interval = parametric(final_model, ns,
                                 X_origin, 
@@ -158,7 +166,7 @@ def run_scada(Xs,
                                 eta_tmp,
                                 K, c1, c2, c1_obs, c2_obs, 
                                 signobs = sign, 
-                                zmin=-20*std, zmax=20*std,)
+                                zmin=max(left_s,-20*std), zmax=min(right_s,20*std),)
 
     selective_p_value = util.compute_p_value(final_interval, etaTX, etaT_Sigma_eta)
     return selective_p_value
