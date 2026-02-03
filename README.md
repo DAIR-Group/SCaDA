@@ -6,7 +6,7 @@ This package provides a statistical inference framework for k-means clustering a
 Performing k-means clustering after DA can lead to erroneous clusters and misleadingly small naive p-values. SCaDA accurately distinguishes between False Positive (FP) and True Positive (TP) detections. It yields large p-values for FPs (erroneous clusters) and small p-values for TPs, correcting misleadingly small naive p-values.
 
 ![SCaDA Overview](images/Figure1.png)
-*Figure 1: Illustration of the proposed SCaDA method.*
+*Figure 1: Illustration of the proposed SCaDA method. The source (blue) and target (orange) domains are image datasets with different marginal distributions but share two common object categories.* 
 
 ### Divide and Conquer Strategy
 Proposed SCaDA method: RL-based DA and k-means clustering are followed by parameterizing the data along a test statistic to characterize the truncation region $Z$. Statistical inference is then conducted by conditioning on $Z$, using a divide-and-conquer strategy for enhanced computational tractability.
